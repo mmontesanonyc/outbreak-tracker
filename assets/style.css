@@ -1,0 +1,7 @@
+  body { font-family: sans-serif; max-width: 760px; margin: 30px auto; padding: 0 15px; }
+  h1 { font-size: 20px; }
+  #controls { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; }
+  #map { margin-top: 10px; }
+  #dayLabel { font-weight: bold; }
+  #controls .button-group { display: flex; gap: 8px; }
+  button { padding: 6px 14px; font-size: 14px; }
