@@ -211,7 +211,7 @@ async function init() {
     ]
   };
 
-  vegaEmbed("#chart", spec, {actions: true}).then(res => {
+  vegaEmbed("#chart", spec, {actions: false}).then(res => {
     vegaView = res.view;
     updateChartRule(0);
   });
