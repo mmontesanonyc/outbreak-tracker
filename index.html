@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Outbreak Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega/5.30.0/vega.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-lite/5.20.1/vega-lite.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vega-embed/6.26.0/vega-embed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  body { font-family: sans-serif; max-width: 760px; margin: 30px auto; padding: 0 15px; }
+  h1 { font-size: 20px; }
+  #controls { margin: 12px 0; }
+  #map { height: 420px; margin-top: 10px; }
+  #dayLabel { font-weight: bold; margin-left: 10px; }
+  button { padding: 6px 14px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>Disease Outbreak Tracker &mdash; January 2026</h1>
+
+<div id="chart"></div>
+
+<div id="controls">
+  <button id="playBtn">Play</button>
+  <button id="resetBtn">Reset</button>
+  <span id="dayLabel">Day: --</span>
+</div>
+
+<div id="map"></div>
+
+<script>
+// ---------- Raw case-level data (Date, ZIP Code) ----------
+const RAW_CASES = [
+  ["01/01/2026","10010"],
+  ["01/02/2026","10009"],
+  ["01/02/2026","10009"],
+  ["01/03/2026","10009"],
+  ["01/03/2026","10010"],
+  ["01/04/2026","10003"],
+  ["01/04/2026","10009"],
+  ["01/04/2026","10010"],
+  ["01/05/2026","10010"],
+  ["01/05/2026","10009"],
+  ["01/05/2026","10009"],
+  ["01/06/2026","10010"],
+  ["01/06/2026","10009"],
+  ["01/06/2026","10009"],
+  ["01/06/2026","10010"],
+  ["01/07/2026","10010"],
+  ["01/07/2026","10009"],
+  ["01/07/2026","10009"],
+  ["01/07/2026","10003"],
+  ["01/07/2026","10010"],
+  ["01/08/2026","10010"],
+  ["01/08/2026","10003"],
+  ["01/08/2026","10009"],
+  ["01/08/2026","10009"],
+  ["01/08/2026","10009"],
+  ["01/08/2026","10009"],
+  ["01/08/2026","10003"],
+  ["01/09/2026","10010"],
+  ["01/09/2026","10010"],
+  ["01/09/2026","10003"],
+  ["01/09/2026","10010"],
+  ["01/09/2026","10009"],
+  ["01/09/2026","10010"],
+  ["01/09/2026","10009"],
+  ["01/09/2026","10003"],
+  ["01/09/2026","10003"],
+  ["01/10/2026","10003"],
+  ["01/10/2026","10003"],
+  ["01/10/2026","10010"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10009"],
+  ["01/10/2026","10010"],
+  ["01/10/2026","10010"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10010"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10010"],
+  ["01/11/2026","10010"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10003"],
+  ["01/11/2026","10010"],
+  ["01/11/2026","10009"],
+  ["01/11/2026","10009"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10003"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10010"],
+  ["01/12/2026","10003"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10003"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10003"],
+  ["01/12/2026","10010"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10010"],
+  ["01/12/2026","10009"],
+  ["01/12/2026","10010"],
+  ["01/12/2026","10003"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10003"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10010"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10003"],
+  ["01/13/2026","10010"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10010"],
+  ["01/13/2026","10010"],
+  ["01/13/2026","10009"],
+  ["01/13/2026","10003"],
+  ["01/13/2026","10010"],
+  ["01/14/2026","10009"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10009"],
+  ["01/14/2026","10003"],
+  ["01/14/2026","10009"],
+  ["01/14/2026","10009"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10009"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10010"],
+  ["01/14/2026","10010"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10010"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10010"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10010"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10010"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10010"],
+  ["01/15/2026","10009"],
+  ["01/15/2026","10003"],
+  ["01/15/2026","10003"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10010"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10003"],
+  ["01/16/2026","10010"],
+  ["01/16/2026","10003"],
+  ["01/16/2026","10010"],
+  ["01/16/2026","10003"],
+  ["01/16/2026","10010"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10003"],
+  ["01/16/2026","10003"],
+  ["01/16/2026","10010"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10009"],
+  ["01/16/2026","10010"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10010"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10003"],
+  ["01/17/2026","10003"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10010"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10010"],
+  ["01/17/2026","10010"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10009"],
+  ["01/17/2026","10010"],
+  ["01/17/2026","10009"],
+  ["01/18/2026","10009"],
+  ["01/18/2026","10003"],
+  ["01/18/2026","10003"],
+  ["01/18/2026","10003"],
+  ["01/18/2026","10003"],
+  ["01/18/2026","10009"],
+  ["01/18/2026","10009"],
+  ["01/18/2026","10010"],
+  ["01/18/2026","10009"],
+  ["01/18/2026","10010"],
+  ["01/18/2026","10009"],
+  ["01/18/2026","10010"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10003"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10009"],
+  ["01/19/2026","10009"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10010"],
+  ["01/19/2026","10009"],
+  ["01/20/2026","10009"],
+  ["01/20/2026","10003"],
+  ["01/20/2026","10003"],
+  ["01/20/2026","10010"],
+  ["01/20/2026","10009"],
+  ["01/20/2026","10009"],
+  ["01/20/2026","10010"],
+  ["01/20/2026","10009"],
+  ["01/21/2026","10009"],
+  ["01/21/2026","10003"],
+  ["01/21/2026","10003"],
+  ["01/21/2026","10010"],
+  ["01/21/2026","10003"],
+  ["01/21/2026","10010"],
+  ["01/22/2026","10003"],
+  ["01/22/2026","10009"],
+  ["01/22/2026","10003"],
+  ["01/22/2026","10003"],
+  ["01/22/2026","10010"],
+  ["01/23/2026","10010"],
+  ["01/23/2026","10009"],
+  ["01/23/2026","10009"],
+  ["01/23/2026","10009"],
+  ["01/24/2026","10003"],
+  ["01/24/2026","10009"],
+  ["01/24/2026","10003"],
+  ["01/25/2026","10003"],
+  ["01/25/2026","10010"],
+  ["01/25/2026","10010"],
+  ["01/26/2026","10003"],
+  ["01/26/2026","10010"],
+  ["01/27/2026","10010"],
+  ["01/27/2026","10009"],
+  ["01/28/2026","10009"],
+  ["01/28/2026","10003"],
+  ["01/29/2026","10010"],
+  ["01/30/2026","10010"],
+  ["01/31/2026","10010"]
+];
+
+// ---------- ZIP code centroids (approx, NYC) ----------
+const ZIP_COORDS = {
+  "10009": [40.7264, -73.9818], // East Village
+  "10010": [40.7388, -73.9826], // Gramercy / Kips Bay
+  "10003": [40.7318, -73.9887]  // Union Square / East Village
+};
+const ZIPS = Object.keys(ZIP_COORDS);
+
+// ---------- Build the full list of 31 days ----------
+function fmt(d) {
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${mm}/${dd}/${d.getFullYear()}`;
+}
+const DAYS = [];
+for (let i = 0; i < 31; i++) {
+  const d = new Date(2026, 0, 1 + i);
+  DAYS.push(fmt(d));
+}
+
+// ---------- Aggregate: new cases per day ----------
+const dailyCountMap = {};
+DAYS.forEach(d => dailyCountMap[d] = 0);
+RAW_CASES.forEach(([date, zip]) => { dailyCountMap[date] = (dailyCountMap[date] || 0) + 1; });
+
+const dailyCounts = DAYS.map(d => ({
+  date: d.slice(6,10) + "-" + d.slice(0,2) + "-" + d.slice(3,5), // ISO for Vega temporal parsing
+  cases: dailyCountMap[d]
+}));
+
+// ---------- Aggregate: cumulative cases per ZIP, per day ----------
+// cumByDay[i][zip] = cumulative cases through day i (0-indexed)
+// lastCaseDay[i][zip] = day index of most recent case in that zip, on or before day i (null if none yet)
+const cumByDay = [];
+const lastCaseDay = [];
+const running = {}; ZIPS.forEach(z => running[z] = 0);
+const lastSeen = {}; ZIPS.forEach(z => lastSeen[z] = null);
+DAYS.forEach((d, i) => {
+  RAW_CASES.filter(([date]) => date === d).forEach(([, zip]) => {
+    running[zip]++;
+    lastSeen[zip] = i;
+  });
+  cumByDay.push({...running});
+  lastCaseDay.push({...lastSeen});
+});
+
+// ---------- Vega-Lite bar chart with a moving rule ----------
+const isoDay = i => dailyCounts[i].date;
+
+const spec = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": 680,
+  "height": 160,
+  "datasets": {
+    "daily": dailyCounts,
+    "ruleData": [{ "date": isoDay(0) }]
+  },
+  "layer": [
+    {
+      "data": {"name": "daily"},
+      "mark": {"type": "bar", "color": "#4C78A8"},
+      "encoding": {
+        "x": {"field": "date", "type": "temporal", "title": "Date", "axis": {"format": "%b %d"}},
+        "y": {"field": "cases", "type": "quantitative", "title": "New cases per day"},
+        "tooltip": [
+          {"field": "date", "type": "temporal", "title": "Date", "format": "%b %d, %Y"},
+          {"field": "cases", "type": "quantitative", "title": "New cases"}
+        ]
+      }
+    },
+    {
+      "data": {"name": "ruleData"},
+      "mark": {"type": "rule", "color": "crimson", "strokeWidth": 2},
+      "encoding": {
+        "x": {"field": "date", "type": "temporal"}
+      }
+    }
+  ]
+};
+
+let vegaView = null;
+vegaEmbed("#chart", spec, {actions: false}).then(res => { vegaView = res.view; });
+
+// ---------- Leaflet bubble map ----------
+const map = L.map("map").setView([40.7325, -73.985], 14);
+// Light, low-detail basemap (Esri World Light Gray Canvas)
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+  maxZoom: 16
+}).addTo(map);
+// thin reference layer with light labels on top of the gray canvas
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+  maxZoom: 16
+}).addTo(map);
+
+// scale bubble area proportional to cumulative case count
+function radiusFor(count) {
+  return count > 0 ? Math.max(4, Math.sqrt(count) * 6) : 0;
+}
+
+// opacity based on days since the most recent case in that ZIP
+// 0 days since = full opacity, decaying toward a low floor as it gets older
+function opacityFor(daysSince) {
+  if (daysSince === null) return 0; // no cases yet
+  const floor = 0.12;
+  const decay = 0.15; // per day
+  return Math.max(floor, 1 - daysSince * decay);
+}
+
+const STROKE_COLOR = "#7f1d1d"; // distinctive dark stroke, stays visible at low fill opacity
+
+const circles = {};
+ZIPS.forEach(zip => {
+  const c = L.circleMarker(ZIP_COORDS[zip], {
+    radius: radiusFor(0),
+    color: STROKE_COLOR,
+    weight: 2,
+    opacity: 1,          // stroke opacity always full
+    fillColor: "#e74c3c",
+    fillOpacity: 0
+  }).addTo(map);
+  c.bindTooltip(`ZIP ${zip}: 0 cumulative cases`);
+  circles[zip] = c;
+});
+
+function updateMap(dayIndex) {
+  const counts = cumByDay[dayIndex];
+  const lastDays = lastCaseDay[dayIndex];
+  ZIPS.forEach(zip => {
+    const n = counts[zip] || 0;
+    const last = lastDays[zip];
+    const daysSince = last === null ? null : dayIndex - last;
+    circles[zip].setRadius(radiusFor(n));
+    circles[zip].setStyle({ fillOpacity: opacityFor(daysSince) });
+    const sinceText = daysSince === null ? "no cases yet" : `last case ${daysSince} day${daysSince === 1 ? "" : "s"} ago`;
+    circles[zip].setTooltipContent(`ZIP ${zip}: ${n} cumulative cases (${sinceText})`);
+  });
+}
+
+function updateChartRule(dayIndex) {
+  if (!vegaView) return;
+  vegaView.data("ruleData", [{ date: isoDay(dayIndex) }]);
+  vegaView.runAsync();
+}
+
+function updateDayLabel(dayIndex) {
+  document.getElementById("dayLabel").textContent = "Day: " + DAYS[dayIndex];
+}
+
+// initialize on day 0
+updateMap(0);
+updateDayLabel(0);
+
+// ---------- Play / Reset controls ----------
+let currentDay = 0;
+let timer = null;
+const playBtn = document.getElementById("playBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+function stepForward() {
+  if (currentDay >= DAYS.length - 1) {
+    clearInterval(timer);
+    timer = null;
+    playBtn.textContent = "Play";
+    return;
+  }
+  currentDay++;
+  updateMap(currentDay);
+  updateChartRule(currentDay);
+  updateDayLabel(currentDay);
+}
+
+playBtn.addEventListener("click", () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    playBtn.textContent = "Play";
+  } else {
+    playBtn.textContent = "Pause";
+    timer = setInterval(stepForward, 400);
+  }
+});
+
+resetBtn.addEventListener("click", () => {
+  clearInterval(timer);
+  timer = null;
+  playBtn.textContent = "Play";
+  currentDay = 0;
+  updateMap(0);
+  updateChartRule(0);
+  updateDayLabel(0);
+});
+</script>
+
+</body>
+</html>
