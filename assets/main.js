@@ -1,4 +1,3 @@
-
 const COORDS = CONFIG.map.coords;
 const ZIPS = Object.keys(COORDS);
 
@@ -299,15 +298,14 @@ function updateDayLabel(dayIndex) {
   document.getElementById("dayLabel").textContent = DAYS[dayIndex];
 }
 
-// ---------- Play / Reset controls ----------
+// ---------- Play / Pause / Reset (single button) ----------
 const playBtn = document.getElementById("playBtn");
-const resetBtn = document.getElementById("resetBtn");
 
 function stepForward() {
   if (currentDay >= DAYS.length - 1) {
     clearInterval(timer);
     timer = null;
-    playBtn.textContent = "Play";
+    playBtn.textContent = "Reset";
     return;
   }
   currentDay++;
@@ -316,23 +314,30 @@ function stepForward() {
   updateDayLabel(currentDay);
 }
 
-playBtn.addEventListener("click", () => {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-    playBtn.textContent = "Play";
-  } else {
-    playBtn.textContent = "Pause";
-    timer = setInterval(stepForward, CONFIG.playback.intervalMs);
-  }
-});
-
-resetBtn.addEventListener("click", () => {
+function resetPlayback() {
   clearInterval(timer);
   timer = null;
-  playBtn.textContent = "Play";
   currentDay = 0;
   updateMap(0);
   updateChartRule(0);
   updateDayLabel(0);
+  playBtn.textContent = "Play";
+}
+
+playBtn.addEventListener("click", () => {
+  if (playBtn.textContent === "Reset") {
+    resetPlayback();
+    return;
+  }
+
+  if (timer) {
+    // currently playing -> pause
+    clearInterval(timer);
+    timer = null;
+    playBtn.textContent = "Play";
+  } else {
+    // paused (or not yet started) -> play
+    playBtn.textContent = "Pause";
+    timer = setInterval(stepForward, CONFIG.playback.intervalMs);
+  }
 });
